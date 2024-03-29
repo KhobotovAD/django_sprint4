@@ -75,6 +75,7 @@ class LocationAdmin(admin.ModelAdmin):
     list_filter = ('name',)
     list_per_page = NUMBER_OF_POSTS
 
+
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
     """Кастомизация админки для модели Comment."""
