@@ -1,14 +1,49 @@
-from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import CreateView, ListView, UpdateView, DeleteView
 
 from .forms import CommentForm, PostForm
-# from .mixins import PostMixin, CommentMixin, AuthorMixin
-from .models import Comment, Category, Post
+from .models import Category, Comment, Post
 
-NUMBER_OF_POSTS = 10  # Ограничение выдачи постов на главной странице
+NUMBER_OF_POSTS = 10
+
+
+class AuthorView(UserPassesTestMixin):
+    def test_func(self):
+        return self.get_object().author == self.request.user
+
+
+class PostView(AuthorView, LoginRequiredMixin):
+    model = Post
+    template_name = 'blog/create.html'
+    form_class = PostForm
+    pk_url_kwarg = 'post_id'
+
+    def handle_no_permission(self):
+        return redirect('blog:post_detail',
+                        self.kwargs[self.pk_url_kwarg])
+
+    def get_success_url(self):
+        return reverse('blog:profile',
+                       kwargs={'username': self.request.user.username})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = PostForm(instance=self.get_object())
+        return context
+
+
+class CommentView(LoginRequiredMixin):
+    model = Comment
+    form_class = CommentForm
+    template_name = 'blog/comment.html'
+    pk_url_kwarg = 'comment_id'
+
+    def get_success_url(self):
+        return reverse('blog:post_detail',
+                       kwargs={'post_id': self.kwargs['post_id']})
 
 
 class IndexListView(ListView):
@@ -38,62 +73,15 @@ class PostDetailView(ListView):
         return context
 
 
-class PostUpdateView(UserPassesTestMixin, LoginRequiredMixin, UpdateView):
-    model = Post
-    template_name = 'blog/create.html'
-    form_class = PostForm
-    pk_url_kwarg = 'post_id'
-
-    def test_func(self):
-        return self.get_object().author == self.request.user
-
-    def handle_no_permission(self):
-        return redirect('blog:post_detail',
-                        self.kwargs[self.pk_url_kwarg])
-
-    def get_success_url(self):
-        return reverse('blog:profile',
-                       kwargs={'username': self.request.user.username})
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['form'] = PostForm(instance=self.get_object())
-        return context
+class PostUpdateView(PostView, UpdateView):
+    pass
 
 
-class PostDeleteView(UserPassesTestMixin, LoginRequiredMixin, DeleteView):
-    model = Post
-    template_name = 'blog/create.html'
-    form_class = PostForm
-    pk_url_kwarg = 'post_id'
-
-    def test_func(self):
-        return self.get_object().author == self.request.user
-
-    def handle_no_permission(self):
-        return redirect('blog:post_detail',
-                        self.kwargs[self.pk_url_kwarg])
-
-    def get_success_url(self):
-        return reverse('blog:profile',
-                       kwargs={'username': self.request.user.username})
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['form'] = PostForm(instance=self.get_object())
-        return context
+class PostDeleteView(PostView, DeleteView):
+    pass
 
 
-class CommentCreateView(UserPassesTestMixin, CreateView):
-    model = Comment
-    form_class = CommentForm
-    template_name = 'blog/comment.html'
-    pk_url_kwarg = 'comment_id'
-
-    def get_success_url(self):
-        return reverse('blog:post_detail',
-                       kwargs={'post_id': self.kwargs['post_id']})
-    
+class CommentCreateView(CommentView, CreateView):
     def form_valid(self, form):
         form.instance.author = self.request.user
         form.instance.post = get_object_or_404(
@@ -117,29 +105,12 @@ class CreatePostView(LoginRequiredMixin, CreateView):
                        kwargs={'username': self.request.user.username})
 
 
-class CommentUpdateView(UserPassesTestMixin, UpdateView):
-    def test_func(self):
-        return self.get_object().author == self.request.user
-
-    model = Comment
-    form_class = CommentForm
-    template_name = 'blog/comment.html'
-    pk_url_kwarg = 'comment_id'
-
-    def get_success_url(self):
-        return reverse('blog:post_detail',
-                       kwargs={'post_id': self.kwargs['post_id']})
+class CommentUpdateView(CommentView, AuthorView, UpdateView):
+    pass
 
 
-class CommentDeleteView(UserPassesTestMixin, DeleteView):
-    model = Comment
-    form_class = CommentForm
-    template_name = 'blog/comment.html'
-    pk_url_kwarg = 'comment_id'
-
-    def get_success_url(self):
-        return reverse('blog:post_detail',
-                       kwargs={'post_id': self.kwargs['post_id']})
+class CommentDeleteView(CommentView, AuthorView, DeleteView):
+    pass
 
 
 class CategoryDetailView(ListView):
