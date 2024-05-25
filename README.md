@@ -2,8 +2,8 @@
 
 ## Это часть работы над проектом Блогикум:
 
-- [Блогикум часть 1](https://github.com/sergeytsepilov-dev/django_sprint1)
-- [Блогикум часть 2](https://github.com/sergeytsepilov-dev/django_sprint3)
+- [Блогикум часть 1](https://github.com/KhobotovAD/django_sprint1)
+- [Блогикум часть 2](https://github.com/KhobotovAD/django_sprint3)
 - Блогикум часть 3 ⬅ *этот репозиторий*
 
 ## Скриншот:
